@@ -25,7 +25,7 @@ Open `index.html` directly in your browser, or run:
 python -m http.server 8000
 ```
 
-Then open <http://localhost:8000>.
+Then visit <http://localhost:8000>.
 
 ## How to download this app
 
