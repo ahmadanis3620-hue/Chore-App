@@ -1,0 +1,107 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cross Creek Chore Connect</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <h1>Cross Creek Chore Connect</h1>
+      <p>
+        A neighborhood board where families can post chores and local helpers can
+        find safe, paid opportunities.
+      </p>
+    </header>
+
+    <main>
+      <section class="card">
+        <h2>Post a chore</h2>
+        <form id="chore-form">
+          <label>
+            Your role
+            <select id="role" required>
+              <option value="">Choose one</option>
+              <option value="Parent">Parent</option>
+              <option value="Kid">Kid</option>
+              <option value="Neighbor">Neighbor</option>
+            </select>
+          </label>
+
+          <label>
+            Name
+            <input id="name" type="text" placeholder="Jordan" required />
+          </label>
+
+          <label>
+            Chore title
+            <input
+              id="title"
+              type="text"
+              placeholder="Lawn mowing this weekend"
+              required
+            />
+          </label>
+
+          <label>
+            Details
+            <textarea
+              id="details"
+              rows="3"
+              placeholder="Front and back lawn, bring your own mower if possible"
+              required
+            ></textarea>
+          </label>
+
+          <label>
+            Budget ($)
+            <input id="budget" type="number" min="0" step="1" required />
+          </label>
+
+          <label>
+            Needed by
+            <input id="date" type="date" required />
+          </label>
+
+          <button type="submit">Publish chore</button>
+        </form>
+      </section>
+
+      <section class="card">
+        <h2>Find chores</h2>
+
+        <div class="filters">
+          <label>
+            Search
+            <input id="search" type="search" placeholder="lawn, dog walk, rake..." />
+          </label>
+
+          <label>
+            Max budget
+            <input id="max-budget" type="number" min="0" step="1" placeholder="Any" />
+          </label>
+        </div>
+
+        <ul id="chore-list" class="chore-list"></ul>
+      </section>
+    </main>
+
+    <template id="chore-item-template">
+      <li class="chore-item">
+        <div class="chore-top">
+          <h3 class="chore-title"></h3>
+          <span class="badge"></span>
+        </div>
+        <p class="chore-details"></p>
+        <div class="meta">
+          <span class="budget"></span>
+          <span class="date"></span>
+          <span class="posted-by"></span>
+        </div>
+      </li>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
