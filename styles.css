@@ -1,0 +1,167 @@
+:root {
+  font-family: Inter, system-ui, -apple-system, Segoe UI, Roboto, sans-serif;
+  --bg: #f7f9fc;
+  --card: #ffffff;
+  --ink: #0f172a;
+  --muted: #475569;
+  --line: #dbe5f0;
+  --accent: #2563eb;
+}
+
+* {
+  box-sizing: border-box;
+}
+
+body {
+  margin: 0;
+  color: var(--ink);
+  background: var(--bg);
+}
+
+.hidden {
+  display: none;
+}
+
+.hero {
+  background: linear-gradient(120deg, #1d4ed8, #2563eb);
+  color: white;
+  padding: 2.3rem 1rem;
+  text-align: center;
+}
+
+.hero h1 {
+  margin: 0;
+}
+
+main {
+  max-width: 980px;
+  margin: 1.5rem auto;
+  padding: 0 1rem 2rem;
+}
+
+.card {
+  background: var(--card);
+  border: 1px solid var(--line);
+  border-radius: 12px;
+  padding: 1rem;
+  margin-bottom: 1rem;
+}
+
+.auth-card {
+  max-width: 500px;
+  margin: 0 auto;
+}
+
+.helper {
+  color: var(--muted);
+  margin-top: 0;
+}
+
+form,
+.filters {
+  display: grid;
+  gap: 0.8rem;
+}
+
+label {
+  display: grid;
+  gap: 0.35rem;
+  font-weight: 600;
+  color: var(--muted);
+  font-size: 0.95rem;
+}
+
+input,
+textarea,
+button {
+  font: inherit;
+}
+
+input,
+textarea {
+  border: 1px solid var(--line);
+  border-radius: 8px;
+  padding: 0.6rem;
+}
+
+button {
+  border: none;
+  border-radius: 8px;
+  background: var(--accent);
+  color: white;
+  padding: 0.7rem 0.9rem;
+  font-weight: 700;
+  cursor: pointer;
+}
+
+button.secondary {
+  background: #e2e8f0;
+  color: #0f172a;
+}
+
+.welcome-row {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.75rem;
+  align-items: center;
+}
+
+.mode-actions {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.6rem;
+  margin-bottom: 0.5rem;
+}
+
+.chore-list {
+  list-style: none;
+  margin: 1rem 0 0;
+  padding: 0;
+  display: grid;
+  gap: 0.7rem;
+}
+
+.chore-item {
+  border: 1px solid var(--line);
+  border-radius: 10px;
+  padding: 0.8rem;
+  background: #f8fbff;
+}
+
+.chore-top {
+  display: flex;
+  justify-content: space-between;
+  gap: 0.8rem;
+}
+
+.chore-title {
+  margin: 0;
+  font-size: 1rem;
+}
+
+.badge {
+  background: #dbeafe;
+  color: #1e3a8a;
+  font-size: 0.8rem;
+  font-weight: 700;
+  border-radius: 999px;
+  padding: 0.2rem 0.65rem;
+}
+
+.chore-details {
+  margin: 0.6rem 0;
+  color: var(--muted);
+}
+
+.meta {
+  display: flex;
+  flex-wrap: wrap;
+  gap: 0.7rem;
+  color: #334155;
+  font-size: 0.86rem;
+  margin-bottom: 0.6rem;
+}
+
+.interest-btn {
+  width: fit-content;
+}

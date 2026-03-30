@@ -1,0 +1,118 @@
+<!doctype html>
+<html lang="en">
+  <head>
+    <meta charset="UTF-8" />
+    <meta name="viewport" content="width=device-width, initial-scale=1.0" />
+    <title>Cross Creek Chore Connect</title>
+    <link rel="stylesheet" href="styles.css" />
+  </head>
+  <body>
+    <header class="hero">
+      <h1>Cross Creek Chore Connect</h1>
+      <p>Login, choose your goal, and connect with neighbors for chores.</p>
+    </header>
+
+    <main>
+      <section id="auth-card" class="card auth-card">
+        <h2>Login</h2>
+        <p class="helper">Create a quick profile to enter the neighborhood board.</p>
+        <form id="auth-form">
+          <label>
+            Name
+            <input id="auth-name" type="text" placeholder="Jordan" required />
+          </label>
+          <label>
+            Neighborhood
+            <input id="auth-neighborhood" type="text" placeholder="Cross Creek" required />
+          </label>
+          <button type="submit">Continue</button>
+        </form>
+      </section>
+
+      <section id="app-shell" class="hidden">
+        <section class="card mode-card">
+          <div class="welcome-row">
+            <h2 id="welcome-text"></h2>
+            <button id="logout" type="button" class="secondary">Log out</button>
+          </div>
+
+          <p>What would you like to do today?</p>
+          <div class="mode-actions">
+            <button id="mode-request" type="button">I want to get work done</button>
+            <button id="mode-helper" type="button" class="secondary">I want to do work</button>
+          </div>
+          <p id="mode-note" class="helper"></p>
+        </section>
+
+        <section id="post-section" class="card hidden">
+          <h2>Post a chore request</h2>
+          <form id="chore-form">
+            <label>
+              Chore title
+              <input id="title" type="text" placeholder="Lawn mowing this weekend" required />
+            </label>
+
+            <label>
+              Details
+              <textarea
+                id="details"
+                rows="3"
+                placeholder="Front and back lawn, bring your own mower if possible"
+                required
+              ></textarea>
+            </label>
+
+            <label>
+              Budget ($)
+              <input id="budget" type="number" min="0" step="1" required />
+            </label>
+
+            <label>
+              Needed by
+              <input id="date" type="date" required />
+            </label>
+
+            <button type="submit">Publish chore</button>
+          </form>
+        </section>
+
+        <section id="browse-section" class="card hidden">
+          <h2 id="browse-heading">Find chores</h2>
+
+          <div class="filters">
+            <label>
+              Search
+              <input id="search" type="search" placeholder="lawn, dog walk, rake..." />
+            </label>
+
+            <label>
+              Max budget
+              <input id="max-budget" type="number" min="0" step="1" placeholder="Any" />
+            </label>
+          </div>
+
+          <ul id="chore-list" class="chore-list"></ul>
+        </section>
+      </section>
+    </main>
+
+    <template id="chore-item-template">
+      <li class="chore-item">
+        <div class="chore-top">
+          <h3 class="chore-title"></h3>
+          <span class="badge"></span>
+        </div>
+        <p class="chore-details"></p>
+        <div class="meta">
+          <span class="budget"></span>
+          <span class="date"></span>
+          <span class="posted-by"></span>
+          <span class="interest"></span>
+        </div>
+        <button class="interest-btn" type="button">I'm interested</button>
+      </li>
+    </template>
+
+    <script src="app.js"></script>
+  </body>
+</html>
