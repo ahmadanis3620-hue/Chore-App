@@ -197,9 +197,14 @@ export const STARTER_TOPICS: TopicDefinition[] = [
     key: "follow-up",
     label: "Follow-up & Aftercare",
     description: "What happens after the service is delivered.",
+    // Bare "checked in" and "after the" are deliberately absent: "the hygienist
+    // checked in with me the entire time" is about attentiveness during the
+    // visit, not aftercare, and "after the" matches almost any narration. Both
+    // attributed in-visit praise to a theme the reviewer never raised.
     cues: [
-      "follow up", "follow-up", "followed up", "checked in", "aftercare",
-      "warranty", "guarantee", "came back to", "post-op", "after the",
+      "follow up", "follow-up", "followed up", "checked in on me",
+      "checked in after", "checked on me after", "aftercare",
+      "warranty", "guarantee", "post-op", "post op",
     ],
     negativeCues: ["never followed up", "no follow up", "wouldn't honor the warranty", "left me on my own"],
     positiveCues: ["followed up", "checked in on me", "honored the warranty", "called to make sure"],

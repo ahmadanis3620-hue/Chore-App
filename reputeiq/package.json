@@ -16,7 +16,8 @@
     "db:reset": "prisma migrate reset --force",
     "db:studio": "prisma studio",
     "seed:demo": "NODE_OPTIONS='--conditions=react-server' tsx scripts/seed-demo.ts",
-    "jobs:run": "NODE_OPTIONS='--conditions=react-server' tsx scripts/run-jobs.ts"
+    "jobs:run": "NODE_OPTIONS='--conditions=react-server' tsx scripts/run-jobs.ts",
+    "demo:prospect": "NODE_OPTIONS='--conditions=react-server' tsx scripts/prospect-demo.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",

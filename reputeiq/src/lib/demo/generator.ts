@@ -8,6 +8,7 @@ import {
   OPENERS_POSITIVE,
   OWNER_RESPONSES,
   SNIPPETS,
+  type SnippetBank,
 } from "@/lib/demo/snippets";
 import type { NormalizedReview } from "@/lib/providers/types";
 import { clamp } from "@/lib/utils";
@@ -54,6 +55,14 @@ export type CorpusConfig = {
   idPrefix: string;
   /** End of the timeline. Defaults to now. */
   endDate?: Date;
+  /**
+   * Per-topic sentence banks layered over the shared ones.
+   *
+   * Lets a sample corpus be written in the language a specific practice is
+   * actually described in, without editing the shared banks and shifting every
+   * other seeded corpus.
+   */
+  snippets?: Record<string, Partial<SnippetBank>>;
 };
 
 /** The demo business: a dental practice with a wait-time problem. */
@@ -250,9 +259,9 @@ export function generateCorpus(config: CorpusConfig): NormalizedReview[] {
         // damning the same thing reads as noise.
         if (usedTopics.has(theme.topicKey)) continue;
 
-        const bank = SNIPPETS[theme.topicKey];
-        if (!bank) continue;
-        const pool = bank[theme.polarity];
+        const override = config.snippets?.[theme.topicKey];
+        const shared = SNIPPETS[theme.topicKey];
+        const pool = override?.[theme.polarity] ?? shared?.[theme.polarity];
         if (!pool || pool.length === 0) continue;
 
         usedTopics.add(theme.topicKey);
@@ -261,8 +270,9 @@ export function generateCorpus(config: CorpusConfig): NormalizedReview[] {
 
       // A review with nothing to say is not a review.
       if (positive.length === 0 && negative.length === 0) {
-        const bank = SNIPPETS["staff"];
-        if (bank) positive.push(rng.pick(bank.positive));
+        const fallback =
+          config.snippets?.["staff"]?.positive ?? SNIPPETS["staff"]?.positive;
+        if (fallback && fallback.length > 0) positive.push(rng.pick(fallback));
       }
 
       const rating = clamp(ratingFromThemes(positive.length, negative.length, rng), 1, 5);

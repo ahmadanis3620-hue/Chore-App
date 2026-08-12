@@ -272,7 +272,7 @@ export async function generateReport(
         title: "Recommended actions",
         body:
           recommendations.length > 0
-            ? `Three actions to prioritize this period.`
+            ? `${recommendations.length === 1 ? "One action" : `${recommendations.length} actions`} to prioritize this period.`
             : "No recommendations have been generated for this period yet.",
         data: { recommendations },
       },
