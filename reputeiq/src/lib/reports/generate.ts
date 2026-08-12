@@ -200,7 +200,7 @@ export async function generateReport(
             label: t.label,
             mentions: t.mentions,
             positiveMentions: t.positiveMentions,
-            quotes: t.sampleQuotes,
+            quotes: t.positiveQuotes,
             evidenceReviewIds: t.evidenceReviewIds,
           })),
         },
@@ -224,7 +224,7 @@ export async function generateReport(
               negativeMentions: t.negativeMentions,
               trendPercent: trend?.trendPercent ?? null,
               previousNegativeMentions: trend?.previous?.negativeMentions ?? null,
-              quotes: t.sampleQuotes,
+              quotes: t.negativeQuotes,
               evidenceReviewIds: t.evidenceReviewIds,
             };
           }),

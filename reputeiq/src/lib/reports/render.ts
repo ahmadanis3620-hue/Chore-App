@@ -187,11 +187,26 @@ function renderSection(section: ReportSection): string {
     </tr>`;
 }
 
+export type RenderOptions = {
+  /**
+   * Whether to include the "view the full report" link.
+   *
+   * A standalone export — an attachment sent to someone with no account —
+   * should not carry a link they cannot open. A dead link in a document you
+   * send a prospect costs more credibility than the link would have earned.
+   */
+  includeAppLink?: boolean;
+  /** Banner shown above the report, e.g. to mark an illustrative sample. */
+  notice?: string;
+};
+
 export function renderReportHtml(
   report: ReportWithSections,
   business: { name: string },
   appUrl: string,
+  options: RenderOptions = {},
 ): string {
+  const { includeAppLink = true, notice } = options;
   const periodLabel = formatWindowLabel({
     start: report.periodStart,
     end: report.periodEnd,
@@ -206,6 +221,15 @@ export function renderReportHtml(
 <html>
   <body style="margin:0;padding:24px 12px;background:${COLORS.bg};font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
     <table width="100%" cellpadding="0" cellspacing="0" style="max-width:640px;margin:0 auto;background:#ffffff;border:1px solid ${COLORS.border};">
+      ${
+        notice
+          ? `<tr>
+        <td style="padding:12px 28px;background:#eef4fd;border-bottom:1px solid ${COLORS.border};">
+          <p style="margin:0;font-size:13px;line-height:1.5;color:${COLORS.accent};font-weight:600;">${escapeHtml(notice)}</p>
+        </td>
+      </tr>`
+          : ""
+      }
       <tr>
         <td style="padding:28px 28px 20px 28px;">
           <div style="font-size:12px;font-weight:600;letter-spacing:0.08em;text-transform:uppercase;color:${COLORS.accent};">
@@ -218,11 +242,15 @@ export function renderReportHtml(
       ${sections}
       <tr>
         <td style="padding:20px 28px;border-top:1px solid ${COLORS.border};background:${COLORS.bg};">
-          <a href="${escapeHtml(appUrl)}/reports/${escapeHtml(report.id)}" style="color:${COLORS.accent};font-size:14px;text-decoration:none;font-weight:600;">
+          ${
+            includeAppLink
+              ? `<a href="${escapeHtml(appUrl)}/reports/${escapeHtml(report.id)}" style="color:${COLORS.accent};font-size:14px;text-decoration:none;font-weight:600;">
             View the full report &rarr;
-          </a>
-          <p style="margin:14px 0 0 0;font-size:12px;line-height:1.5;color:${COLORS.muted};">
-            Every figure in this report is computed from your review data. ReputeIQ flags reviews that may need attention but does not provide legal or medical advice.
+          </a>`
+              : ""
+          }
+          <p style="margin:${includeAppLink ? "14px" : "0"} 0 0 0;font-size:12px;line-height:1.5;color:${COLORS.muted};">
+            Every figure in this report is computed from the review data for the period shown. ReputeIQ flags reviews that may need attention but does not provide legal or medical advice.
           </p>
         </td>
       </tr>

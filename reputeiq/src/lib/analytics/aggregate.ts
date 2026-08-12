@@ -72,6 +72,13 @@ export type AggregateOptions = {
   maxQuotes?: number;
 };
 
+/** Most emphatic first. */
+function byWeight(
+  quotes: Array<{ text: string; weight: number }>,
+): string[] {
+  return [...quotes].sort((a, b) => b.weight - a.weight).map((q) => q.text);
+}
+
 export function aggregateTopics(
   reviews: AnalyzedReview[],
   options: AggregateOptions = {},
@@ -88,7 +95,7 @@ export function aggregateTopics(
     sentimentTotal: number;
     importanceTotal: number;
     reviewIds: Set<string>;
-    quotes: Array<{ text: string; weight: number }>;
+    quotes: Array<{ text: string; weight: number; sentiment: string }>;
   };
 
   const byKey = new Map<string, Accumulator>();
@@ -129,6 +136,7 @@ export function aggregateTopics(
         acc.quotes.push({
           text: mention.excerpt,
           weight: Math.abs(mention.sentimentScore) * mention.importance,
+          sentiment: mention.sentiment,
         });
       }
     }
@@ -148,10 +156,13 @@ export function aggregateTopics(
       averageImportance: round(acc.importanceTotal / acc.mentions, 3),
       shareOfReviews: reviewCount > 0 ? round(acc.reviewIds.size / reviewCount, 4) : 0,
       evidenceReviewIds: [...acc.reviewIds],
-      sampleQuotes: acc.quotes
-        .sort((a, b) => b.weight - a.weight)
-        .slice(0, maxQuotes)
-        .map((q) => q.text),
+      sampleQuotes: byWeight(acc.quotes).slice(0, maxQuotes),
+      positiveQuotes: byWeight(
+        acc.quotes.filter((q) => q.sentiment === "POSITIVE"),
+      ).slice(0, maxQuotes),
+      negativeQuotes: byWeight(
+        acc.quotes.filter((q) => q.sentiment === "NEGATIVE"),
+      ).slice(0, maxQuotes),
     }))
     .sort((a, b) => b.mentions - a.mentions);
 }

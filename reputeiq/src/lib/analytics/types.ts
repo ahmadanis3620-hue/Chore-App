@@ -58,7 +58,17 @@ export type TopicAggregate = {
   shareOfReviews: number;
   /** Ids of the reviews behind these counts — the traceability link. */
   evidenceReviewIds: string[];
+  /** Most emphatic excerpts regardless of polarity. */
   sampleQuotes: string[];
+  /**
+   * Excerpts split by polarity.
+   *
+   * A "biggest problems" section that quotes a compliment reads as though the
+   * analysis did not understand its own finding, so each section pulls the
+   * quote that matches the point it is making.
+   */
+  positiveQuotes: string[];
+  negativeQuotes: string[];
 };
 
 export type TrendStatus =

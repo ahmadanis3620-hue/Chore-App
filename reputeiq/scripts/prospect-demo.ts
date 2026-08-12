@@ -21,6 +21,9 @@
  * Never present the review-derived figures as the prospect's actual reviews.
  */
 
+import { mkdir, writeFile } from "node:fs/promises";
+import { join } from "node:path";
+
 import { ReviewProviderKey, ReportType, SourceStatus } from "@prisma/client";
 
 import { analyzeBusinessReviews } from "@/lib/analysis/analyze";
@@ -32,6 +35,7 @@ import { generateCorpus, type CorpusConfig } from "@/lib/demo/generator";
 import { ingestReviews } from "@/lib/ingestion/ingest";
 import { runFullPipeline } from "@/lib/jobs/registry";
 import { generateReport } from "@/lib/reports/generate";
+import { renderReportHtml } from "@/lib/reports/render";
 import { slugify } from "@/lib/utils";
 
 // ---------------------------------------------------------------------------
@@ -172,16 +176,196 @@ const PROSPECT_CORPUS: Omit<CorpusConfig, "endDate"> = {
   ],
 };
 
+// ---------------------------------------------------------------------------
+// The buyer-profile sample.
+//
+// This practice is fictional, and deliberately so. A report for a business at
+// this rating necessarily contains a volume of complaints, and attaching
+// invented complaints to a real, named practice — then emailing it around —
+// would be unfair to them regardless of how it is labelled. The name carries
+// "(Sample)" so the marking survives the report being forwarded without its
+// covering note.
+// ---------------------------------------------------------------------------
+
+const SAMPLE_39 = {
+  name: "Riverbend Family Dental (Sample)",
+  industry: "Dentist",
+  website: null,
+  timezone: "America/New_York",
+  location: {
+    label: "Main office",
+    addressLine1: null,
+    city: "Columbus",
+    region: "OH",
+    postalCode: null,
+    country: "US",
+  },
+  publishedRating: 3.9,
+  publishedReviewCount: 214,
+} as const;
+
+const SAMPLE_39_SNIPPETS = {
+  "wait-time": {
+    positive: ["Taken back right on time for once, which I appreciated."],
+    negative: [
+      "I waited almost an hour past my appointment time before anyone came to get me.",
+      "My appointment was at 4:30 and I did not get taken back until well after 5.",
+      "Third visit in a row where they were running badly behind schedule.",
+      "Sat in the waiting room a very long time with no update on when I would be seen.",
+      "The wait has gotten noticeably worse over the past few months.",
+      "Ended up leaving and rebooking because they were running so far behind.",
+    ],
+  },
+  billing: {
+    positive: ["Billing was straightforward and they handled the insurance without any fuss."],
+    negative: [
+      "I got a surprise bill weeks later for something I was told was covered.",
+      "The billing office got my insurance information wrong twice.",
+      "Still waiting on a refund for an amount I was overcharged.",
+      "Nobody could explain what a line item on my statement was actually for.",
+    ],
+  },
+  pricing: {
+    positive: ["Reasonable prices for the quality of the work."],
+    negative: [
+      "The cost came in a lot higher than what I was quoted on the phone.",
+      "Prices have gone up and nobody mentioned the increase beforehand.",
+      "The treatment plan they proposed was extremely expensive and felt like an upsell.",
+    ],
+  },
+  staff: {
+    positive: [
+      "The hygienist was wonderful and made a stressful visit easy.",
+      "The whole team is kind, patient, and clearly cares about their patients.",
+      "Everyone here is friendly and professional from the moment you walk in.",
+      "They were so patient with my son, who is terrified of the dentist.",
+      "The front desk staff are lovely and remember you by name.",
+    ],
+    negative: [
+      "The person at the front desk was short with me and seemed annoyed by my questions.",
+    ],
+  },
+  quality: {
+    positive: [
+      "The work they did was excellent and I have had no issues since.",
+      "Best cleaning I have had in years — genuinely thorough.",
+      "My crown fits perfectly and looks completely natural.",
+    ],
+    negative: ["I had to come back twice to get the same filling adjusted properly."],
+  },
+  cleanliness: {
+    positive: [
+      "The office is spotless every time I come in.",
+      "Very clean facility and the equipment all looks well maintained.",
+    ],
+    negative: [],
+  },
+  scheduling: {
+    positive: ["They fit me in the same day when I called with a problem."],
+    negative: [
+      "They rescheduled my appointment twice with very little notice.",
+      "It took over two months to get a routine cleaning appointment.",
+    ],
+  },
+  communication: {
+    positive: ["The dentist explained every option clearly and never pushed me toward anything."],
+    negative: ["No one called me back after I left two messages about my treatment plan."],
+  },
+} satisfies CorpusConfig["snippets"];
+
+/** Calibrated to ~3.9 stars: a solid practice with real, recurring problems. */
+const SAMPLE_39_CORPUS: Omit<CorpusConfig, "endDate"> = {
+  seed: 39390,
+  months: 14,
+  reviewsPerMonth: 18,
+  monthlyJitter: 4,
+  responseRate: 0.25,
+  idPrefix: "sample-rfd",
+  snippets: SAMPLE_39_SNIPPETS,
+  themes: [
+    { topicKey: "staff", polarity: "positive", base: 0.66 },
+    { topicKey: "quality", polarity: "positive", base: 0.42 },
+    { topicKey: "cleanliness", polarity: "positive", base: 0.3 },
+    { topicKey: "communication", polarity: "positive", base: 0.2 },
+    // The story: wait times are the entrenched problem and getting worse,
+    // with a billing thread emerging over the last quarter.
+    {
+      topicKey: "wait-time",
+      polarity: "negative",
+      base: 0.14,
+      byRecentMonth: { 0: 0.39, 1: 0.33, 2: 0.24, 3: 0.19 },
+    },
+    {
+      topicKey: "billing",
+      polarity: "negative",
+      base: 0.06,
+      byRecentMonth: { 0: 0.19, 1: 0.16, 2: 0.11 },
+    },
+    { topicKey: "pricing", polarity: "negative", base: 0.1 },
+    { topicKey: "scheduling", polarity: "negative", base: 0.09 },
+    { topicKey: "communication", polarity: "negative", base: 0.05 },
+    { topicKey: "quality", polarity: "negative", base: 0.05 },
+    { topicKey: "staff", polarity: "negative", base: 0.05 },
+  ],
+};
+
+type Preset = {
+  profile: {
+    name: string;
+    industry: string;
+    website: string | null;
+    timezone: string;
+    location: {
+      label: string;
+      addressLine1: string | null;
+      city: string;
+      region: string;
+      postalCode: string | null;
+      country: string;
+    };
+    publishedRating: number;
+    publishedReviewCount: number;
+  };
+  corpus: Omit<CorpusConfig, "endDate">;
+  /** True when the profile names a real business. */
+  realBusiness: boolean;
+};
+
+const PRESETS: Record<string, Preset> = {
+  "advance-dentistry-hilliard": {
+    profile: PROSPECT,
+    corpus: PROSPECT_CORPUS,
+    realBusiness: true,
+  },
+  "sample-dentist-39": {
+    profile: SAMPLE_39,
+    corpus: SAMPLE_39_CORPUS,
+    realBusiness: false,
+  },
+};
+
 const OWNER_EMAIL = process.env.PROSPECT_EMAIL ?? "prospect@reputeiq.local";
 const OWNER_PASSWORD = process.env.PROSPECT_PASSWORD ?? "prospect-password-123";
 
 async function main() {
   const now = new Date();
-  const slug = slugify(`${PROSPECT.name}-sample`);
+
+  const presetKey = process.argv[2] ?? "advance-dentistry-hilliard";
+  const preset = PRESETS[presetKey];
+  if (!preset) {
+    console.error(
+      `Unknown preset "${presetKey}". Available: ${Object.keys(PRESETS).join(", ")}`,
+    );
+    process.exitCode = 1;
+    return;
+  }
+
+  const PROFILE = preset.profile;
+  const slug = slugify(`${PROFILE.name}-sample`);
 
   const organization = await prisma.organization.upsert({
     where: { slug },
-    create: { name: PROSPECT.name, slug, subscription: { create: {} } },
+    create: { name: PROFILE.name, slug, subscription: { create: {} } },
     update: {},
   });
 
@@ -204,7 +388,7 @@ async function main() {
   });
 
   const existing = await prisma.business.findFirst({
-    where: { organizationId: organization.id, name: PROSPECT.name },
+    where: { organizationId: organization.id, name: PROFILE.name },
     select: { id: true },
   });
 
@@ -213,14 +397,14 @@ async function main() {
     (await prisma.business.create({
       data: {
         organizationId: organization.id,
-        name: PROSPECT.name,
-        industry: PROSPECT.industry,
-        website: PROSPECT.website,
-        timezone: PROSPECT.timezone,
+        name: PROFILE.name,
+        industry: PROFILE.industry,
+        website: PROFILE.website,
+        timezone: PROFILE.timezone,
         // Non-negotiable: this profile carries simulated reviews, so it is
         // flagged as demo data and bannered on every screen.
         isDemo: true,
-        locations: { create: { ...PROSPECT.location } },
+        locations: { create: { ...PROFILE.location } },
       },
       select: { id: true },
     }));
@@ -246,16 +430,16 @@ async function main() {
       // The corpus must be attached to the source, not merely ingested once.
       // The demo provider falls back to its own built-in corpus otherwise, so
       // the next sync would pour an unrelated business's reviews into this one.
-      config: { corpus: PROSPECT_CORPUS, endDate: now.toISOString() },
+      config: { corpus: preset.corpus, endDate: now.toISOString() },
     },
     update: {
-      config: { corpus: PROSPECT_CORPUS, endDate: now.toISOString() },
+      config: { corpus: preset.corpus, endDate: now.toISOString() },
     },
   });
 
   // Ingest through the provider path so a later sync regenerates the identical
   // corpus and deduplicates to a no-op.
-  const corpus = generateCorpus({ ...PROSPECT_CORPUS, endDate: now });
+  const corpus = generateCorpus({ ...preset.corpus, endDate: now });
   const stats = await ingestReviews(business.id, source.id, corpus);
   console.log(
     `Ingested ${stats.created} simulated reviews (${stats.duplicates} already present).`,
@@ -285,11 +469,38 @@ async function main() {
       ? reviews.reduce((sum, r) => sum + r.rating, 0) / reviews.length
       : 0;
 
+  // Export a standalone HTML copy of the report, suitable for attaching.
+  const full = await prisma.report.findUniqueOrThrow({
+    where: { id: reportId },
+    include: {
+      sections: { orderBy: { order: "asc" } },
+      business: { select: { name: true } },
+    },
+  });
+
+  const notice = preset.realBusiness
+    ? "Illustrative sample. Profile details are public; the individual reviews behind these figures are simulated, not this practice's real reviews."
+    : "Illustrative sample for a fictional practice. Every review behind these figures is simulated.";
+
+  const outDir = join(process.cwd(), "exports");
+  await mkdir(outDir, { recursive: true });
+  const outPath = join(outDir, `${presetKey}-report.html`);
+  await writeFile(
+    outPath,
+    renderReportHtml(full, full.business, "", {
+      includeAppLink: false,
+      notice,
+    }),
+    "utf8",
+  );
+
   console.log("");
-  console.log(`Sample built for ${PROSPECT.name}`);
-  console.log(`  Published rating (real):  ${PROSPECT.publishedRating} from ${PROSPECT.publishedReviewCount} reviews`);
+  console.log(`Sample built for ${PROFILE.name}`);
+  console.log(`  Preset:                   ${presetKey}${preset.realBusiness ? " (REAL business)" : " (fictional)"}`);
+  console.log(`  Target rating:            ${PROFILE.publishedRating}`);
   console.log(`  Simulated 30-day average: ${avg.toFixed(2)} across ${reviews.length} reviews`);
   console.log(`  Report:                   /reports/${reportId}`);
+  console.log(`  Exported:                 ${outPath}`);
   console.log(`  Sign in:                  ${OWNER_EMAIL} / ${OWNER_PASSWORD}`);
   console.log("");
   console.log("Every review-derived figure is SIMULATED. Label it as a sample.");

@@ -26,3 +26,6 @@ next-env.d.ts
 *.pem
 npm-debug.log*
 .vercel
+
+# generated sample reports
+/exports

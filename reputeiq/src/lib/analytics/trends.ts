@@ -21,6 +21,16 @@ import { round } from "@/lib/utils";
 /** Below this many mentions in the larger of the two periods, no percentage. */
 export const MIN_MENTIONS_FOR_TREND = 3;
 
+/**
+ * Below this many mentions in the *previous* period, no percentage either.
+ *
+ * A theme going from 1 mention to 5 is arithmetically "+400%", and that figure
+ * is technically traceable — but it reads as a catastrophe when the underlying
+ * change is four reviews. Such a theme is still surfaced, and loudly; it is
+ * classified as new or growing and described in words instead.
+ */
+export const MIN_BASELINE_FOR_PERCENT = 2;
+
 /** Percentage change treated as movement rather than jitter. */
 export const MATERIAL_CHANGE_PERCENT = 15;
 
@@ -46,6 +56,8 @@ function emptyAggregate(key: string, label: string): TopicAggregate {
     shareOfReviews: 0,
     evidenceReviewIds: [],
     sampleQuotes: [],
+    positiveQuotes: [],
+    negativeQuotes: [],
   };
 }
 
@@ -61,7 +73,14 @@ function classify(
 
   const enough =
     Math.max(current.mentions, previous.mentions) >= MIN_MENTIONS_FOR_TREND;
-  if (!enough || trendPercent === null) return "insufficient-data";
+  if (!enough) return "insufficient-data";
+
+  if (trendPercent === null) {
+    // Too thin a baseline to quote a percentage, but a theme that has grown
+    // to a reportable volume from almost nothing is exactly what an owner
+    // needs to see. Call it new rather than hiding it.
+    return current.mentions > previous.mentions ? "new" : "insufficient-data";
+  }
 
   if (trendPercent >= MATERIAL_CHANGE_PERCENT) return "growing";
   if (trendPercent <= -MATERIAL_CHANGE_PERCENT) return "improving";
@@ -113,12 +132,16 @@ export function compareTopics(
       MIN_MENTIONS_FOR_TREND;
 
     const trendPercent =
-      enough && previousAgg
+      enough &&
+      previousAgg &&
+      previousAgg.mentions >= MIN_BASELINE_FOR_PERCENT
         ? percentChange(currentAgg.mentions, previousAgg.mentions)
         : null;
 
     const negativeTrendPercent =
-      enough && previousAgg
+      enough &&
+      previousAgg &&
+      previousAgg.negativeMentions >= MIN_BASELINE_FOR_PERCENT
         ? percentChange(currentAgg.negativeMentions, previousAgg.negativeMentions)
         : null;
 

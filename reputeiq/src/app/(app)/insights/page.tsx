@@ -199,9 +199,9 @@ export default async function InsightsPage() {
                     {trend.previous?.negativeMentions ?? 0} in the previous 30
                     days.
                   </p>
-                  {trend.current.sampleQuotes[0] ? (
+                  {trend.current.negativeQuotes[0] ? (
                     <p className="mt-1.5 border-l-2 border-line pl-3 text-sm italic text-ink-secondary">
-                      &ldquo;{trend.current.sampleQuotes[0]}&rdquo;
+                      &ldquo;{trend.current.negativeQuotes[0]}&rdquo;
                     </p>
                   ) : null}
                 </div>
