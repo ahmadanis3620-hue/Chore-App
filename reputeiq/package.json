@@ -17,7 +17,8 @@
     "db:studio": "prisma studio",
     "seed:demo": "NODE_OPTIONS='--conditions=react-server' tsx scripts/seed-demo.ts",
     "jobs:run": "NODE_OPTIONS='--conditions=react-server' tsx scripts/run-jobs.ts",
-    "demo:prospect": "NODE_OPTIONS='--conditions=react-server' tsx scripts/prospect-demo.ts"
+    "demo:prospect": "NODE_OPTIONS='--conditions=react-server' tsx scripts/prospect-demo.ts",
+    "export:report": "NODE_OPTIONS='--conditions=react-server' tsx scripts/export-report.ts"
   },
   "dependencies": {
     "@prisma/client": "^6.19.0",
@@ -42,6 +43,7 @@
     "dotenv": "^17.4.2",
     "eslint": "^9",
     "eslint-config-next": "16.2.4",
+    "playwright": "^1.62.1",
     "prisma": "^6.19.0",
     "tailwindcss": "^4",
     "tsx": "^4.20.6",

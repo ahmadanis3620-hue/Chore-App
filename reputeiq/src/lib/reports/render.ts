@@ -295,3 +295,157 @@ export function reportSubject(
     report.reputationScore !== null ? ` — score ${report.reputationScore}/100` : "";
   return `${business.name}: ${report.type === "WEEKLY" ? "weekly" : "monthly"} reputation report${scoreText}`;
 }
+
+// ---------------------------------------------------------------------------
+// Compact preview
+// ---------------------------------------------------------------------------
+
+/**
+ * A short, self-contained block suitable for embedding directly in an email
+ * body — no attachment to open.
+ *
+ * Deliberately not the whole report. Inlining all ten sections turns an inbox
+ * message into a wall of text that gets scrolled past; this carries the four
+ * things that make someone reply — the score, the headline stats, the biggest
+ * problem, and what to do about it — and leaves the detail to the attachment
+ * for anyone who wants it.
+ *
+ * Table layout with inline styles, because Gmail and Outlook strip <style>
+ * blocks and much of modern CSS. Returned as a fragment (no <html>/<body>),
+ * since an email client supplies those itself.
+ */
+export function renderReportPreview(
+  report: ReportWithSections,
+  business: { name: string },
+  options: { notice?: string } = {},
+): string {
+  const { notice } = options;
+  const byKey = new Map(report.sections.map((s) => [s.key, s]));
+  const dataFor = (key: string): SectionData =>
+    (byKey.get(key)?.data as SectionData | null) ?? {};
+
+  const performance = dataFor("review-performance");
+  const problems =
+    (dataFor("biggest-problems").topics as Array<Record<string, unknown>>) ?? [];
+  const loves =
+    (dataFor("customers-love").topics as Array<Record<string, unknown>>) ?? [];
+  const actions =
+    (dataFor("recommended-actions").recommendations as Array<
+      Record<string, unknown>
+    >) ?? [];
+
+  const periodLabel = formatWindowLabel({
+    start: report.periodStart,
+    end: report.periodEnd,
+  });
+
+  const stat = (label: string, value: string) => `
+    <td style="padding:0 16px 0 0;vertical-align:top;">
+      <div style="font-size:12px;color:${COLORS.muted};">${escapeHtml(label)}</div>
+      <div style="font-size:20px;font-weight:700;color:${COLORS.ink};margin-top:2px;">${escapeHtml(value)}</div>
+    </td>`;
+
+  const problemRows = problems
+    .slice(0, 3)
+    .map((topic) => {
+      const negative = Number(topic.negativeMentions ?? 0);
+      const quote = Array.isArray(topic.quotes)
+        ? (topic.quotes as string[])[0]
+        : undefined;
+      return `
+      <div style="margin:0 0 10px 0;padding-left:10px;border-left:3px solid ${COLORS.negative};">
+        <div style="font-size:14px;font-weight:600;color:${COLORS.ink};">
+          ${escapeHtml(String(topic.label ?? ""))}
+          <span style="font-weight:400;color:${COLORS.muted};">&nbsp;&middot;&nbsp;${negative} negative mention${negative === 1 ? "" : "s"}</span>
+        </div>
+        ${quote ? `<div style="font-size:13px;color:${COLORS.muted};margin-top:3px;font-style:italic;">&ldquo;${escapeHtml(quote)}&rdquo;</div>` : ""}
+      </div>`;
+    })
+    .join("");
+
+  const loveRows = loves
+    .slice(0, 3)
+    .map((topic) => {
+      const positive = Number(topic.positiveMentions ?? 0);
+      return `
+      <div style="margin:0 0 8px 0;padding-left:10px;border-left:3px solid ${COLORS.positive};">
+        <div style="font-size:14px;color:${COLORS.ink};">
+          <span style="font-weight:600;">${escapeHtml(String(topic.label ?? ""))}</span>
+          <span style="color:${COLORS.muted};">&nbsp;&middot;&nbsp;${positive} positive mention${positive === 1 ? "" : "s"}</span>
+        </div>
+      </div>`;
+    })
+    .join("");
+
+  const actionRows = actions
+    .slice(0, 3)
+    .map(
+      (item, index) => `
+      <div style="margin:0 0 12px 0;">
+        <div style="font-size:14px;font-weight:600;color:${COLORS.ink};">
+          ${index + 1}. ${escapeHtml(String(item.title ?? ""))}
+        </div>
+        <div style="font-size:13px;color:${COLORS.muted};margin-top:3px;line-height:1.5;">${escapeHtml(String(item.action ?? ""))}</div>
+      </div>`,
+    )
+    .join("");
+
+  return `
+<table width="100%" cellpadding="0" cellspacing="0" border="0" style="max-width:560px;border:1px solid ${COLORS.border};border-radius:4px;background:#ffffff;font-family:-apple-system,BlinkMacSystemFont,'Segoe UI',Helvetica,Arial,sans-serif;">
+  ${
+    notice
+      ? `<tr><td style="padding:10px 20px;background:#eef4fd;border-bottom:1px solid ${COLORS.border};">
+      <div style="font-size:12px;font-weight:600;color:${COLORS.accent};line-height:1.4;">${escapeHtml(notice)}</div>
+    </td></tr>`
+      : ""
+  }
+  <tr>
+    <td style="padding:20px 20px 14px 20px;">
+      <div style="font-size:11px;font-weight:700;letter-spacing:0.08em;text-transform:uppercase;color:${COLORS.accent};">ReputeIQ &middot; Monthly report</div>
+      <div style="font-size:18px;font-weight:700;color:${COLORS.ink};margin-top:6px;">${escapeHtml(business.name)}</div>
+      <div style="font-size:13px;color:${COLORS.muted};margin-top:1px;">${escapeHtml(periodLabel)}</div>
+    </td>
+  </tr>
+  <tr>
+    <td style="padding:0 20px 18px 20px;">
+      <table cellpadding="0" cellspacing="0" border="0"><tr>
+        ${stat("Reputation score", report.reputationScore !== null ? `${report.reputationScore}/100` : "—")}
+        ${stat("Rating", typeof performance.averageRating === "number" ? performance.averageRating.toFixed(2) : "—")}
+        ${stat("Reviews", String(performance.count ?? 0))}
+        ${stat("Negative", typeof performance.negativeRate === "number" ? `${(performance.negativeRate * 100).toFixed(0)}%` : "—")}
+      </tr></table>
+    </td>
+  </tr>
+  ${
+    problemRows
+      ? `<tr><td style="padding:16px 20px;border-top:1px solid ${COLORS.border};">
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:${COLORS.muted};margin-bottom:10px;">Biggest problems</div>
+    ${problemRows}
+  </td></tr>`
+      : ""
+  }
+  ${
+    loveRows
+      ? `<tr><td style="padding:16px 20px;border-top:1px solid ${COLORS.border};">
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:${COLORS.muted};margin-bottom:10px;">What customers love</div>
+    ${loveRows}
+  </td></tr>`
+      : ""
+  }
+  ${
+    actionRows
+      ? `<tr><td style="padding:16px 20px;border-top:1px solid ${COLORS.border};">
+    <div style="font-size:11px;font-weight:700;letter-spacing:0.06em;text-transform:uppercase;color:${COLORS.muted};margin-bottom:10px;">What to do this month</div>
+    ${actionRows}
+  </td></tr>`
+      : ""
+  }
+  <tr>
+    <td style="padding:12px 20px;border-top:1px solid ${COLORS.border};background:${COLORS.bg};">
+      <div style="font-size:11px;line-height:1.5;color:${COLORS.muted};">
+        Every figure is computed from the review data for the period shown. ReputeIQ flags reviews that may need attention but does not provide legal or medical advice.
+      </div>
+    </td>
+  </tr>
+</table>`;
+}
